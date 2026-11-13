@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Oscilador amortiguado y forzado</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600&family=Spectral:ital,wght@0,500;1,400&display=swap">
+<style>
+:root{--bg:#EDF1F3;--panel:#F9FBFB;--ink:#1B2730;--mute:#5B6B76;--line:#CBD5DB;--x:#0E7C86;--f:#B7791F;--acc:#3B4CCA;--btn:#E1E8EC;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#131A20;--panel:#1B252D;--ink:#E6EDF1;--mute:#93A4AF;--line:#2F3D47;--x:#4CC3CE;--f:#E3A94B;--acc:#9AA6FF;--btn:#26333D;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#131A20;--panel:#1B252D;--ink:#E6EDF1;--mute:#93A4AF;--line:#2F3D47;--x:#4CC3CE;--f:#E3A94B;--acc:#9AA6FF;--btn:#26333D;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Instrument Sans",system-ui,sans-serif}
+.wrap{max-width:1120px;margin:0 auto;padding:22px 16px 36px}
+h1{font:500 clamp(1.5rem,4vw,2.1rem)/1.15 Spectral,Georgia,serif;margin:0 0 6px}
+.eq{font:italic 400 clamp(1.25rem,3.4vw,1.7rem)/1.3 Spectral,Georgia,serif;margin:8px 0 4px}
+.lead{margin:0 0 18px;color:var(--mute);max-width:62ch}
+.grid{display:grid;grid-template-columns:minmax(250px,300px) 1fr;gap:16px;align-items:start}
+@media (max-width:820px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+.row{display:grid;grid-template-columns:1fr auto;margin-bottom:10px}
+.row input{grid-column:1/3;width:100%;accent-color:var(--x);margin:4px 0 0}
+.row output{font-variant-numeric:tabular-nums;color:var(--mute)}
+.btns{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 12px}
+button{font:inherit;background:var(--btn);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px 10px;cursor:pointer}
+button:hover{border-color:var(--mute)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+button.main{background:var(--x);color:var(--panel);border-color:var(--x);font-weight:600}
+h2{font:500 1.05rem Spectral,Georgia,serif;margin:0 0 6px}
+.sec+.sec{border-top:1px solid var(--line);margin-top:14px;padding-top:14px}
+canvas{display:block;width:100%}
+#cA{height:150px}#cT{height:240px}#cR{height:190px}
+.note{margin:6px 0 0;color:var(--mute);font-size:13px}
+dl{display:grid;grid-template-columns:1fr auto;gap:4px 10px;margin:12px 0 0;font-size:14px}
+dt{color:var(--mute)}dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+.hint{font-size:13px;color:var(--mute);margin:10px 0 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Oscilador amortiguado y forzado</h1>
+<div class="eq">ẍ + 2γẋ + ω₀²x = F cos(ωt)</div>
+<p class="lead">Una partícula unida a un resorte, con rozamiento viscoso y una fuerza periódica. Mueve los controles mientras corre la simulación. Aquí el término del resorte es ω₀²x, de modo que ω₀ es la frecuencia natural.</p>
+<div class="grid">
+<aside class="panel">
+<div class="btns" id="pre"></div>
+<div id="sliders"></div>
+<div class="btns"><button class="main" id="bp">Pausar</button><button id="br">Reiniciar</button></div>
+<dl>
+<dt>Régimen libre</dt><dd id="r_reg"></dd>
+<dt>Frecuencia amortiguada ω_d</dt><dd id="r_wd"></dd>
+<dt>Amplitud estacionaria A</dt><dd id="r_A"></dd>
+<dt>Desfase δ (x atrasa a F)</dt><dd id="r_d"></dd>
+<dt>ω de máxima amplitud</dt><dd id="r_wr"></dd>
+</dl>
+<p class="hint">Cambiar x₀ o v₀ reinicia la simulación.</p>
+</aside>
+<section class="panel">
+<div class="sec"><h2>Partícula y resorte</h2><canvas id="cA"></canvas><p class="note">La flecha ámbar es la fuerza aplicada; la línea punteada marca x = 0.</p></div>
+<div class="sec"><h2>Posición en el tiempo</h2><canvas id="cT"></canvas></div>
+<div class="sec"><h2>Amplitud estacionaria según ω</h2><canvas id="cR"></canvas><p class="note">La línea ámbar marca la ω actual y la punteada, ω₀. Con poco amortiguamiento el pico se vuelve alto y estrecho.</p></div>
+</section>
+</div>
+</div>
+<script>
+const CFG=[['g','Amortiguamiento γ',0,3,.01,.15],['w0','Frecuencia natural ω₀',.5,4,.01,2],['F','Amplitud de la fuerza F',0,5,.05,1],['w','Frecuencia de la fuerza ω',.1,6,.01,1.8],['x0','Posición inicial x₀',-3,3,.1,1],['v0','Velocidad inicial v₀',-3,3,.1,0],['sp','Velocidad de simulación',.25,3,.25,1]];
+const PRE={'Resonancia':{g:.1,w0:2,F:1,w:2,x0:0,v0:0},'Batidos':{g:0,w0:2,F:1,w:1.8,x0:0,v0:0},'Libre amortiguado':{g:.15,w0:2,F:0,w:1,x0:2,v0:0},'Sobreamortiguado':{g:2.5,w0:1.5,F:1,w:1,x0:2,v0:0}};
+const $=id=>document.getElementById(id),el={},TW=20,cs=getComputedStyle(document.documentElement),C=n=>cs.getPropertyValue(n).trim(),FONT='12px "Instrument Sans",system-ui,sans-serif';
+let P={},S={},HT=[],HX=[],HF=[],lastS=0,running=true,view={ym:1,ax:2};
+const val=id=>parseFloat(el[id].value);
+CFG.forEach(([id,lab,min,max,step,v])=>{const d=document.createElement('div');d.className='row';
+d.innerHTML=`<label for="${id}">${lab}</label><output id="o_${id}"></output><input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${v}">`;
+$('sliders').appendChild(d);el[id]=d.querySelector('input');
+el[id].addEventListener('input',()=>{if(id==='x0'||id==='v0')reset();refresh();});});
+Object.entries(PRE).forEach(([n,p])=>{const b=document.createElement('button');b.textContent=n;b.onclick=()=>{for(const k in p)el[k].value=p[k];refresh();reset();};$('pre').appendChild(b);});
+$('bp').onclick=()=>{running=!running;$('bp').textContent=running?'Pausar':'Reanudar';};
+$('br').onclick=reset;
+
+function refresh(){
+  for(const [id] of CFG){const v=val(id);$('o_'+id).textContent=id==='sp'?v.toFixed(2)+'×':v.toFixed(2);}
+  P={g:val('g'),w0:val('w0'),F:val('F'),w:val('w'),sp:val('sp')};
+  const {g,w0,F,w}=P,den=Math.sqrt((w0*w0-w*w)**2+(2*g*w)**2);
+  $('r_reg').textContent=Math.abs(g-w0)<.01?'crítico':g<w0?'subamortiguado':'sobreamortiguado';
+  $('r_wd').textContent=g<w0?Math.sqrt(w0*w0-g*g).toFixed(3):'—';
+  $('r_A').textContent=den<1e-9?'∞':(F/den).toFixed(3);
+  $('r_d').textContent=(Math.atan2(2*g*w,w0*w0-w*w)*180/Math.PI).toFixed(0)+'°';
+  $('r_wr').textContent=w0*w0>2*g*g?Math.sqrt(w0*w0-2*g*g).toFixed(3):'sin pico';
+}
+function reset(){S={x:val('x0'),v:val('v0'),ph:0,t:0};HT=[];HX=[];HF=[];lastS=0;view={ym:Math.max(1,Math.abs(S.x)*1.15),ax:Math.max(2,Math.abs(S.x)*1.1)};}
+
+function rk4(h){
+  const {g,w0,F,w}=P,a=(x,v,p)=>F*Math.cos(p)-2*g*v-w0*w0*x,{x,v,ph}=S;
+  const k1x=v,k1v=a(x,v,ph);
+  const k2x=v+h/2*k1v,k2v=a(x+h/2*k1x,v+h/2*k1v,ph+h/2*w);
+  const k3x=v+h/2*k2v,k3v=a(x+h/2*k2x,v+h/2*k2v,ph+h/2*w);
+  const k4x=v+h*k3v,k4v=a(x+h*k3x,v+h*k3v,ph+h*w);
+  S.x+=h/6*(k1x+2*k2x+2*k3x+k4x);S.v+=h/6*(k1v+2*k2v+2*k3v+k4v);S.ph+=h*w;S.t+=h;
+}
+function sample(){
+  if(S.t-lastS<.02)return;lastS=S.t;HT.push(S.t);HX.push(S.x);HF.push(P.F*Math.cos(S.ph)/(P.w0*P.w0));
+  while(HT.length&&HT[0]<S.t-TW-1){HT.shift();HX.shift();HF.shift();}
+}
+
+const cv={};
+function setup(id,k){const c=$(id),o={ctx:c.getContext('2d'),w:0,h:0};cv[k]=o;
+  const fit=()=>{const r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;c.width=Math.round(r.width*d);c.height=Math.round(r.height*d);o.ctx.setTransform(d,0,0,d,0,0);o.w=r.width;o.h=r.height;};
+  new ResizeObserver(fit).observe(c);fit();}
+
+function drawAnim(){
+  const {ctx,w,h}=cv.A;ctx.clearRect(0,0,w,h);
+  const cy=h*.62,cx=w*.52,sc=(w*.36)/view.ax,px=cx+S.x*sc,m=22;
+  ctx.font=FONT;ctx.fillStyle=C('--mute');ctx.textAlign='left';ctx.textBaseline='top';
+  ctx.fillText(`x = ${S.x.toFixed(2)}   t = ${S.t.toFixed(1)} s`,12,8);
+  ctx.fillRect(0,cy-30,6,60);
+  ctx.strokeStyle=C('--line');ctx.lineWidth=1;ctx.setLineDash([3,4]);ctx.beginPath();ctx.moveTo(cx,cy-46);ctx.lineTo(cx,cy+46);ctx.stroke();ctx.setLineDash([]);
+  const a=6,b=px-m,n=14,seg=(b-a)/(n+2);
+  ctx.strokeStyle=C('--mute');ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(a,cy);ctx.lineTo(a+seg,cy);
+  for(let i=0;i<n;i++)ctx.lineTo(a+seg*(i+1.5),cy+(i%2?9:-9));
+  ctx.lineTo(b,cy);ctx.stroke();
+  ctx.fillStyle=C('--x');ctx.fillRect(px-m,cy-m,2*m,2*m);
+  const ay=cy-m-16,len=P.F*Math.cos(S.ph)/5*w*.18,s=Math.sign(len)*7;
+  ctx.strokeStyle=ctx.fillStyle=C('--f');ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(px,ay);ctx.lineTo(px+len,ay);ctx.stroke();
+  if(Math.abs(len)>4){ctx.beginPath();ctx.moveTo(px+len,ay);ctx.lineTo(px+len-s,ay-4);ctx.lineTo(px+len-s,ay+4);ctx.fill();}
+}
+function drawTime(){
+  const {ctx,w,h}=cv.T;ctx.clearRect(0,0,w,h);
+  const l=38,r=10,tp=26,b=22,pw=w-l-r,ph=h-tp-b,t0=Math.max(0,S.t-TW),ym=view.ym;
+  const mx=t=>l+(t-t0)/TW*pw,my=v=>tp+ph/2-v/ym*ph/2;
+  ctx.font=FONT;ctx.lineWidth=1;ctx.strokeStyle=C('--line');ctx.fillStyle=C('--mute');ctx.textAlign='right';ctx.textBaseline='middle';
+  for(const k of [-1,-.5,0,.5,1]){const y=my(k*ym);ctx.beginPath();ctx.moveTo(l,y);ctx.lineTo(w-r,y);ctx.stroke();ctx.fillText((k*ym).toFixed(1),l-6,y);}
+  ctx.textAlign='center';ctx.textBaseline='top';
+  for(let tk=Math.ceil(t0/5)*5;tk<=t0+TW;tk+=5){const x=mx(tk);ctx.beginPath();ctx.moveTo(x,tp);ctx.lineTo(x,tp+ph);ctx.stroke();ctx.fillText(tk+' s',x,tp+ph+5);}
+  ctx.save();ctx.beginPath();ctx.rect(l,tp,pw,ph);ctx.clip();
+  const path=(ys,col,lw)=>{ctx.strokeStyle=C(col);ctx.lineWidth=lw;ctx.beginPath();let st=false;
+    for(let i=0;i<HT.length;i++){if(HT[i]<t0)continue;const X=mx(HT[i]),Y=my(ys[i]);st?ctx.lineTo(X,Y):(ctx.moveTo(X,Y),st=true);}ctx.stroke();};
+  path(HF,'--f',1.4);path(HX,'--x',2.2);ctx.restore();
+  ctx.textAlign='left';ctx.textBaseline='middle';
+  [['--x','x(t)',l],['--f','F cos ωt / ω₀² (desplazamiento estático)',l+60]].forEach(([c,t,x])=>{ctx.strokeStyle=ctx.fillStyle=C(c);ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(x,12);ctx.lineTo(x+16,12);ctx.stroke();ctx.fillStyle=C('--mute');ctx.fillText(t,x+22,12);});
+}
+function Amp(w){const g=Math.max(P.g,.005);return P.F/Math.sqrt((P.w0*P.w0-w*w)**2+(2*g*w)**2);}
+function drawRes(){
+  const {ctx,w,h}=cv.R;ctx.clearRect(0,0,w,h);
+  const l=38,r=10,tp=12,b=24,pw=w-l-r,ph=h-tp-b,W=6,N=600;let top=0;
+  for(let i=0;i<=N;i++)top=Math.max(top,Amp(i/N*W));
+  if(P.w0*P.w0>2*P.g*P.g)top=Math.max(top,Amp(Math.sqrt(P.w0*P.w0-2*P.g*P.g)));
+  top=top>1e-6?top*1.1:1;
+  const mx=v=>l+v/W*pw,my=a=>tp+ph-a/top*ph;
+  ctx.font=FONT;ctx.lineWidth=1;ctx.strokeStyle=C('--line');ctx.fillStyle=C('--mute');ctx.textAlign='center';ctx.textBaseline='top';
+  for(let k=0;k<=W;k++){ctx.beginPath();ctx.moveTo(mx(k),tp);ctx.lineTo(mx(k),tp+ph);ctx.stroke();ctx.fillText(k,mx(k),tp+ph+5);}
+  ctx.textAlign='right';ctx.textBaseline='middle';
+  for(const k of [0,1]){ctx.beginPath();ctx.moveTo(l,my(k*top));ctx.lineTo(w-r,my(k*top));ctx.stroke();ctx.fillText((k*top).toFixed(1),l-6,my(k*top));}
+  ctx.textAlign='right';ctx.textBaseline='bottom';ctx.fillText('ω',w-r,h-2+0);
+  ctx.save();ctx.beginPath();ctx.rect(l,tp-2,pw,ph+4);ctx.clip();
+  ctx.setLineDash([3,4]);ctx.strokeStyle=C('--mute');ctx.beginPath();ctx.moveTo(mx(P.w0),tp);ctx.lineTo(mx(P.w0),tp+ph);ctx.stroke();ctx.setLineDash([]);
+  ctx.strokeStyle=C('--acc');ctx.lineWidth=2.2;ctx.beginPath();
+  for(let i=0;i<=N;i++){const ww=i/N*W,X=mx(ww),Y=my(Amp(ww));i?ctx.lineTo(X,Y):ctx.moveTo(X,Y);}ctx.stroke();
+  ctx.strokeStyle=ctx.fillStyle=C('--f');ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(mx(P.w),tp);ctx.lineTo(mx(P.w),tp+ph);ctx.stroke();
+  ctx.beginPath();ctx.arc(mx(P.w),my(Amp(P.w)),4.5,0,7);ctx.fill();ctx.restore();
+}
+function frame(now){
+  const dt=Math.min(.05,(now-frame.last)/1000);frame.last=now;
+  if(running){const sd=dt*P.sp,n=Math.max(1,Math.ceil(sd/.004)),h=sd/n;for(let i=0;i<n;i++){rk4(h);sample();}}
+  let mxX=0,mxF=0;for(let i=0;i<HX.length;i++){mxX=Math.max(mxX,Math.abs(HX[i]));mxF=Math.max(mxF,Math.abs(HF[i]));}
+  view.ym+=(Math.max(1,mxX*1.15,mxF*1.15)-view.ym)*.08;view.ax+=(Math.max(2,mxX*1.1)-view.ax)*.08;
+  drawAnim();drawTime();drawRes();requestAnimationFrame(frame);
+}
+setup('cA','A');setup('cT','T');setup('cR','R');
+refresh();reset();frame.last=performance.now();requestAnimationFrame(frame);
+</script>
+</body>
+</html>
