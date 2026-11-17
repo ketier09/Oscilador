@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
+<title>Oscilador amortiguado y forzado</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600&amp;family=Spectral:ital,wght@0,500;1,400&amp;display=swap" rel="stylesheet"/>
+<style>
+/* Tokens de color (modo claro). --x: posición, --f: fuerza, --acc: curva de resonancia */
+:root{--bg:#EDF1F3;--panel:#F9FBFB;--ink:#1B2730;--mute:#5B6B76;--line:#CBD5DB;--x:#0E7C86;--f:#B7791F;--acc:#3B4CCA;--btn:#E1E8EC;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+/* Modo oscuro: mismos tokens con valores para fondo oscuro */
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#131A20;--panel:#1B252D;--ink:#E6EDF1;--mute:#93A4AF;--line:#2F3D47;--x:#4CC3CE;--f:#E3A94B;--acc:#9AA6FF;--btn:#26333D;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#131A20;--panel:#1B252D;--ink:#E6EDF1;--mute:#93A4AF;--line:#2F3D47;--x:#4CC3CE;--f:#E3A94B;--acc:#9AA6FF;--btn:#26333D;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Instrument Sans",system-ui,sans-serif}
+.wrap{max-width:1120px;margin:0 auto;padding:22px 16px 36px}
+h1{font:500 clamp(1.5rem,4vw,2.1rem)/1.15 Spectral,Georgia,serif;margin:0 0 6px}
+.eq{font:italic 400 clamp(1.25rem,3.4vw,1.7rem)/1.3 Spectral,Georgia,serif;margin:8px 0 4px}
+.lead{margin:0 0 18px;color:var(--mute);max-width:62ch}
+.phys{margin:0 0 10px;color:var(--mute);font-size:14px}
+/* Controles a la izquierda y gráficas a la derecha; en pantallas estrechas se apilan */
+.grid{display:grid;grid-template-columns:minmax(250px,300px) 1fr;gap:16px;align-items:start}
+@media (max-width:820px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+/* Cada control: etiqueta, valor numérico y slider */
+.row{display:grid;grid-template-columns:1fr auto;margin-bottom:10px}
+.row input{grid-column:1/3;width:100%;accent-color:var(--x);margin:4px 0 0}
+.row output{font-variant-numeric:tabular-nums;color:var(--mute)}
+.btns{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 12px}
+button{font:inherit;background:var(--btn);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px 10px;cursor:pointer}
+button:hover{border-color:var(--mute)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+button.main{background:var(--x);color:var(--panel);border-color:var(--x);font-weight:600}
+h2{font:500 1.05rem Spectral,Georgia,serif;margin:0 0 6px}
+.sec+.sec{border-top:1px solid var(--line);margin-top:14px;padding-top:14px}
+/* Los canvas ocupan todo el ancho; la altura se fija abajo y la resolución interna se ajusta en JS (setup) */
+canvas{display:block;width:100%}
+#cA{height:150px}#cT{height:240px}#cR{height:190px}
+.note{margin:6px 0 0;color:var(--mute);font-size:13px}
+dl{display:grid;grid-template-columns:1fr auto;gap:4px 10px;margin:12px 0 0;font-size:14px}
+dt{color:var(--mute)}dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+.hint{font-size:13px;color:var(--mute);margin:10px 0 0}
+/* Columna izquierda: controles y panel del factor de calidad apilados */
+.side{display:grid;gap:16px}
+/* Factor de calidad: número grande e indicador en escala logarítmica (Q de 0.1 a 100) */
+.qbig{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.qbig span:first-child{font:500 2.4rem/1.1 Spectral,Georgia,serif;font-variant-numeric:tabular-nums}
+.qeq{font:italic 1rem Spectral,Georgia,serif;color:var(--mute)}
+.gauge{position:relative;height:8px;background:var(--line);border-radius:4px;margin:12px 0 4px}
+.gauge .crit{position:absolute;left:23.3%;top:-4px;bottom:-4px;width:2px;background:var(--mute)}
+.gauge b{position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--acc);border:2px solid var(--panel);transition:left .25s}
+.ticks{display:flex;justify-content:space-between;font-size:12px;color:var(--mute)}
+
+@media(max-width:820px){.grid{display:flex!important;flex-direction:column!important}.grid>section.panel{order:-1!important;width:100%}.grid>.side{order:1!important;width:100%}.grid>section.panel canvas{max-width:100%}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Oscilador amortiguado y forzado</h1>
+<div class="eq">ẍ + 2γẋ + ω₀²x = F cos(ωt)</div>
+<p class="phys">Forma física: m ẍ + b ẋ + k x = F₀ cos ωt, con 2γ = b/m, ω₀² = k/m y F = F₀/m.</p>
+<p class="lead">Una partícula unida a un resorte (ley de Hooke), con rozamiento viscoso (ley de Stokes) y una fuerza de excitación periódica; la segunda ley de Newton las une en una sola ecuación. Mueve los controles mientras corre la simulación y sigue la envolvente punteada. Aquí el término del resorte es ω₀²x, de modo que ω₀ es la frecuencia natural.</p>
+<div class="grid">
+<!-- Columna izquierda: controles (presets, parámetros, pausa/reinicio, valores derivados) y factor de calidad -->
+<div class="side">
+<aside class="panel">
+<div class="btns" id="pre"></div>
+<div id="sliders"></div>
+<div class="btns"><button class="main" id="bp">Pausar</button><button id="br">Reiniciar</button><button aria-pressed="true" id="be">Envolvente: sí</button><button aria-pressed="true" id="bf">Gráfico de la excitación: sí</button></div>
+<dl>
+<dt>Régimen libre</dt><dd id="r_reg"></dd>
+<dt>Frecuencia amortiguada ω_d</dt><dd id="r_wd"></dd>
+<dt>Amplitud estacionaria A</dt><dd id="r_A"></dd>
+<dt>Desfase δ (x atrasa a F)</dt><dd id="r_d"></dd>
+<dt>ω de máxima amplitud</dt><dd id="r_wr"></dd>
+</dl>
+<p class="hint">Cambiar x₀ o v₀ reinicia la simulación.</p>
+</aside>
+<!-- Panel del factor de calidad Q = ω₀/(2γ): valor, indicador logarítmico y consecuencias físicas -->
+<aside class="panel">
+<h2>Factor de calidad</h2>
+<div class="qbig"><span id="q_val"></span><span class="qeq">Q = ω₀ / 2γ</span></div>
+<div class="gauge" id="q_gauge" role="img"><i class="crit"></i><b id="q_dot"></b></div>
+<div class="ticks"><span>0.1</span><span>1</span><span>10</span><span>100</span></div>
+<p class="note" id="q_txt"></p>
+<dl>
+<dt>Ciclos hasta caer a 1/e</dt><dd id="q_cyc"></dd>
+<dt>Decaimiento τ = 1/γ</dt><dd id="q_tau"></dd>
+<dt>Ancho de banda Δω ≈ 2γ</dt><dd id="q_bw"></dd>
+<dt>Energía (∝ A²) decae como</dt><dd id="q_loss"></dd>
+</dl>
+<p class="hint">Q también es cuánto se amplifica la respuesta en ω = ω₀ frente a una fuerza estática. La marca vertical indica Q = 0.5: a su izquierda no hay oscilación libre. Los datos de decaimiento valen para la oscilación libre (F = 0).</p>
+</aside>
+</div>
+<!-- Panel de gráficas: animación de la partícula, x(t) y curva de resonancia -->
+<section class="panel">
+<div class="sec"><h2>Partícula y resorte</h2><canvas id="cA"></canvas><p class="note">La flecha ámbar es la fuerza de excitación; la línea punteada marca x = 0.</p></div>
+<div class="sec"><h2>Posición en el tiempo</h2><canvas id="cT"></canvas><p class="note">La línea punteada es la envolvente ±A(t): constante sin amortiguamiento, e^(−γt) en la oscilación libre, la banda ±A estacionaria al terminar el transitorio y ±A(1 − e^(−γt)) en resonancia desde el reposo. Con γ ≥ ω₀ no oscila y solo se muestra la banda ±A de la excitación.</p></div>
+<div class="sec"><h2>Amplitud estacionaria según ω/ω₀</h2><canvas id="cR"></canvas><p class="note">La línea ámbar marca la ω/ω₀ actual y la punteada, ω/ω₀ = 1. Con poco amortiguamiento el pico se vuelve alto y estrecho.</p></div>
+</section>
+</div>
+</div>
+<script>
+/* ===== Configuración =====
+ * Cada control es [id, etiqueta, mínimo, máximo, paso, valor inicial].
+ * g = γ (amortiguamiento), w0 = ω₀ (frecuencia natural), F = amplitud de la fuerza,
+ * w = ω (frecuencia de la fuerza), x0 y v0 = condiciones iniciales, sp = velocidad de simulación. */
+const CFG=[['g','Amortiguamiento γ',0,3,.01,.15],['w0','Frecuencia natural ω₀',.5,4,.01,2],['F','Fuerza de excitación F = F₀/m',0,5,.05,1],['w','Frecuencia de excitación ω',.1,6,.01,1.8],['x0','Posición inicial x₀',-3,3,.1,1],['v0','Velocidad inicial v₀',-3,3,.1,0],['sp','Velocidad de simulación',.25,3,.25,1]];
+// Presets: valores de los parámetros que ilustran casos típicos (resonancia, batidos, etc.)
+const PRE={'Resonancia':{g:.1,w0:2,F:1,w:2,x0:0,v0:0},'Batidos':{g:0,w0:2,F:1,w:1.8,x0:0,v0:0},'Libre amortiguado':{g:.15,w0:2,F:0,w:1,x0:2,v0:0},'Sobreamortiguado':{g:2.5,w0:1.5,F:1,w:1,x0:2,v0:0}};
+// Utilidades: $ = atajo al DOM, el = sliders por id, TW = ventana de tiempo de x(t) en segundos,
+// cs/C = leen las variables CSS de color para que el canvas siga el modo claro/oscuro, FONT = fuente de los textos del canvas
+const $=id=>document.getElementById(id),el={},TW=20,cs=getComputedStyle(document.documentElement),C=n=>cs.getPropertyValue(n).trim(),FONT='12px "Instrument Sans",system-ui,sans-serif';
+// Estado global:
+//   P: parámetros vigentes {g, w0, F, w, sp}      S: estado de la partícula {x, v, ph (fase de la fuerza), t}
+//   HT/HX/HF: historial de t, x y fuerza escalada   lastS: último instante guardado
+//   running: simulación en marcha   view: escalas de los ejes (ym en x(t), ax en la animación)
+let P={},S={},HT=[],HX=[],HF=[],HE=[],lastS=0,running=true,view={ym:1,ax:2};
+// Valor numérico actual de un slider
+const val=id=>parseFloat(el[id].value);
+// Construye los sliders a partir de CFG; cambiar x₀ o v₀ reinicia la simulación
+CFG.forEach(([id,lab,min,max,step,v])=>{const d=document.createElement('div');d.className='row';
+d.innerHTML=`<label for="${id}">${lab}</label><output id="o_${id}"></output><input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${v}">`;
+$('sliders').appendChild(d);el[id]=d.querySelector('input');
+el[id].addEventListener('input',()=>{if(id==='x0'||id==='v0')reset();refresh();});});
+// Botones de presets: asignan los valores a los sliders y reinician
+Object.entries(PRE).forEach(([n,p])=>{const b=document.createElement('button');b.textContent=n;b.onclick=()=>{for(const k in p)el[k].value=p[k];refresh();reset();};$('pre').appendChild(b);});
+// Pausar/reanudar y reiniciar
+$('bp').onclick=()=>{running=!running;$('bp').textContent=running?'Pausar':'Reanudar';};
+$('br').onclick=reset;
+// Envolvente: se muestra u oculta con el botón
+let showForce=true;$('bf').onclick=()=>{showForce=!showForce;$('bf').textContent='Gráfico de la excitación: '+(showForce?'sí':'no');$('bf').setAttribute('aria-pressed',showForce);};
+let showEnv=true;$('be').onclick=()=>{showEnv=!showEnv;$('be').textContent='Envolvente: '+(showEnv?'sí':'no');$('be').setAttribute('aria-pressed',showEnv);};
+/**
+ * Envolvente instantánea ±A(t) = |u_p + u_h|, módulo de la suma de los fasores de la respuesta estacionaria
+ * (frecuencia ω) y del transitorio (frecuencia ω_d, decae como e^(−γt)). Da los batidos si γ = 0, e^(−γt) en la
+ * oscilación libre y A(1 − e^(−γt)) en resonancia desde el reposo. Si γ ≥ ω₀ no hay transitorio oscilante: solo la banda ±A.
+ */
+function envelope(){
+  const {g,w0,F,w}=P,{x,v,ph}=S,wd=g<w0?Math.sqrt(w0*w0-g*g):0,den=(w0*w0-w*w)**2+(2*g*w)**2;
+  if(F>0&&den<1e-9)return NaN;
+  // Fasor estacionario P = F/(ω₀² − ω² + 2iγω) girado por la fase de la fuerza
+  const pr=F>0?F*(w0*w0-w*w)/den:0,pi=F>0?-F*2*g*w/den:0,c=Math.cos(ph),s=Math.sin(ph),ur=pr*c-pi*s,ui=pr*s+pi*c;
+  if(!wd)return F>0?Math.hypot(ur,ui):NaN;
+  // Transitorio: x_h = x − x_p y v_h = v − v_p, con v_p = −ω·Im(u_p)
+  const xh=x-ur,vh=v+w*ui,b=(vh+g*xh)/wd;
+  return Math.hypot(x,ui-b);
+}
+
+/**
+ * Lee los sliders, actualiza el número mostrado junto a cada uno, guarda los
+ * parámetros vigentes en P y recalcula los valores derivados del panel.
+ */
+function refresh(){
+  for(const [id] of CFG){const v=val(id);$('o_'+id).textContent=id==='sp'?v.toFixed(2)+'×':v.toFixed(2);}
+  // Parámetros vigentes: los usa el integrador en cada paso
+  P={g:val('g'),w0:val('w0'),F:val('F'),w:val('w'),sp:val('sp')};
+  // Resultados teóricos: A = F/√((ω₀²−ω²)²+(2γω)²), δ = atan2(2γω, ω₀²−ω²),
+  // ω_d = √(ω₀²−γ²) y pico de amplitud en ω_r = √(ω₀²−2γ²) (solo si ω₀² > 2γ²)
+  const {g,w0,F,w}=P,den=Math.sqrt((w0*w0-w*w)**2+(2*g*w)**2);
+  $('r_reg').textContent=Math.abs(g-w0)<.01?'crítico':g<w0?'subamortiguado':'sobreamortiguado';
+  $('r_wd').textContent=g<w0?Math.sqrt(w0*w0-g*g).toFixed(3):'—';
+  $('r_A').textContent=den<1e-9?'∞':(F/den).toFixed(3);
+  $('r_d').textContent=(Math.atan2(2*g*w,w0*w0-w*w)*180/Math.PI).toFixed(0)+'°';
+  $('r_wr').textContent=w0*w0>2*g*g?Math.sqrt(w0*w0-2*g*g).toFixed(3):'sin pico';
+  // Factor de calidad Q = ω₀/(2γ): cuanto mayor es, más aguda es la resonancia y más ciclos
+  // tarda en apagarse la oscilación libre. wd = ω_d (0 si no hay oscilación libre).
+  const Q=g>0?w0/(2*g):Infinity,wd=g<w0?Math.sqrt(w0*w0-g*g):0;
+  const fq=v=>!isFinite(v)?'∞':v>=100?v.toFixed(0):v>=10?v.toFixed(1):v.toFixed(2);
+  $('q_val').textContent=fq(Q);
+  // Indicador logarítmico: Q = 0.1 en el extremo izquierdo y Q = 100 en el derecho
+  $('q_dot').style.left=(isFinite(Q)?Math.min(1,Math.max(0,(Math.log10(Q)+1)/3)):1)*100+'%';
+  $('q_gauge').setAttribute('aria-label','Factor de calidad Q = '+fq(Q));
+  // Lectura cualitativa según el valor de Q
+  $('q_txt').textContent=!isFinite(Q)?'Sin amortiguamiento: la oscilación libre nunca se apaga.':Math.abs(Q-.5)<.005?'Amortiguamiento crítico: el retorno más rápido sin oscilar.':Q<.5?'Sobreamortiguado: no hay oscilación libre.':Q<5?'Poco selectivo: se apaga en pocos ciclos y la resonancia es ancha.':Q<30?'Resonancia moderadamente aguda.':'Resonancia muy aguda: oscila durante muchos ciclos.';
+  // Ciclos hasta que la amplitud cae a 1/e: ω_d/(2πγ) (la envolvente libre es e^(−γt))
+  $('q_cyc').textContent=g===0?'∞':wd>0?(wd/(2*Math.PI*g)).toFixed(2):'—';
+  $('q_tau').textContent=g>0?(1/g).toFixed(2)+' s':'∞';
+  $('q_bw').textContent=(2*g).toFixed(2)+' rad/s';
+  // La energía es proporcional al cuadrado de la amplitud: si la amplitud decae como e^(−γt), la energía decae como e^(−2γt)
+  $('q_loss').textContent=g===0?'constante':'e^(−'+(2*g).toFixed(2)+' t)';
+}
+/** Reinicia la partícula con x₀ y v₀ (fase y tiempo en 0), borra el historial y reajusta las escalas. */
+function reset(){S={x:val('x0'),v:val('v0'),ph:0,t:0};HT=[];HX=[];HF=[];HE=[];lastS=0;view={ym:Math.max(1,Math.abs(S.x)*1.15),ax:Math.max(2,Math.abs(S.x)*1.1)};}
+
+/**
+ * Avanza el estado un paso h con Runge-Kutta de orden 4.
+ * La ecuación de segundo orden se escribe como sistema de primer orden:
+ *   x' = v
+ *   v' = F cos(φ) − 2γ v − ω₀² x
+ *   φ' = ω        (fase de la fuerza; acumularla evita saltos al cambiar ω en marcha)
+ */
+function rk4(h){
+  // a(x, v, φ) = aceleración x'' despejada de la ecuación de movimiento
+  const {g,w0,F,w}=P,a=(x,v,p)=>F*Math.cos(p)-2*g*v-w0*w0*x,{x,v,ph}=S;
+  // Pendientes k1..k4 de x y de v: al inicio del paso, en dos puntos medios y al final
+  const k1x=v,k1v=a(x,v,ph);
+  const k2x=v+h/2*k1v,k2v=a(x+h/2*k1x,v+h/2*k1v,ph+h/2*w);
+  const k3x=v+h/2*k2v,k3v=a(x+h/2*k2x,v+h/2*k2v,ph+h/2*w);
+  const k4x=v+h*k3v,k4v=a(x+h*k3x,v+h*k3v,ph+h*w);
+  // Promedio ponderado de las pendientes (1, 2, 2, 1)/6; la fase avanza ω·h
+  S.x+=h/6*(k1x+2*k2x+2*k3x+k4x);S.v+=h/6*(k1v+2*k2v+2*k3v+k4v);S.ph+=h*w;S.t+=h;
+}
+/** Guarda cada 0,02 s de tiempo simulado: t, x y la fuerza escalada F cos(φ)/ω₀² (desplazamiento estático equivalente). */
+function sample(){
+  if(S.t-lastS<.02)return;lastS=S.t;HT.push(S.t);HX.push(S.x);HF.push(P.F*Math.cos(S.ph)/(P.w0*P.w0));HE.push(envelope());
+  // Descarta los datos que ya salieron de la ventana visible
+  while(HT.length&&HT[0]<S.t-TW-1){HT.shift();HX.shift();HF.shift();HE.shift();}
+}
+
+// cv guarda, para cada canvas, su contexto 2D y su tamaño en píxeles CSS
+const cv={};
+/**
+ * Prepara un canvas: ajusta su resolución interna a su tamaño en pantalla y a la densidad
+ * de píxeles (nitidez en pantallas retina), y lo reajusta cada vez que cambia de tamaño.
+ */
+function setup(id,k){const c=$(id),o={ctx:c.getContext('2d'),w:0,h:0};cv[k]=o;
+  const fit=()=>{const r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;c.width=Math.round(r.width*d);c.height=Math.round(r.height*d);o.ctx.setTransform(d,0,0,d,0,0);o.w=r.width;o.h=r.height;};
+  new ResizeObserver(fit).observe(c);fit();}
+
+/** Dibuja la partícula: pared, resorte, masa y flecha de la fuerza. La escala (px por unidad de x) sigue a view.ax. */
+function drawAnim(){
+  const {ctx,w,h}=cv.A;ctx.clearRect(0,0,w,h);
+  // cy: altura de la línea central; cx: posición de x = 0; sc: píxeles por unidad; px: posición de la masa; m: medio lado de la masa
+  const cy=h*.62,cx=w*.52,sc=(w*.36)/view.ax,px=cx+S.x*sc,m=22;
+  ctx.font=FONT;ctx.fillStyle=C('--mute');ctx.textAlign='left';ctx.textBaseline='top';
+  ctx.fillText(`x = ${S.x.toFixed(2)}   t = ${S.t.toFixed(1)} s`,12,8);
+  // Pared fija
+  ctx.fillRect(0,cy-30,6,60);
+  // Línea punteada de equilibrio (x = 0)
+  ctx.strokeStyle=C('--line');ctx.lineWidth=1;ctx.setLineDash([3,4]);ctx.beginPath();ctx.moveTo(cx,cy-46);ctx.lineTo(cx,cy+46);ctx.stroke();ctx.setLineDash([]);
+  // Resorte: zigzag de n tramos entre la pared (a) y el borde izquierdo de la masa (b); se estira o comprime con x
+  const a=6,b=px-m,n=14,seg=(b-a)/(n+2);
+  ctx.strokeStyle=C('--mute');ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(a,cy);ctx.lineTo(a+seg,cy);
+  for(let i=0;i<n;i++)ctx.lineTo(a+seg*(i+1.5),cy+(i%2?9:-9));
+  ctx.lineTo(b,cy);ctx.stroke();
+  // Masa
+  ctx.fillStyle=C('--x');ctx.fillRect(px-m,cy-m,2*m,2*m);
+  // Flecha de la fuerza sobre la masa: longitud proporcional a F cos(φ), con punta según el signo
+  const ay=cy-m-16,len=P.F*Math.cos(S.ph)/5*w*.18,s=Math.sign(len)*7;
+  ctx.strokeStyle=ctx.fillStyle=C('--f');ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(px,ay);ctx.lineTo(px+len,ay);ctx.stroke();
+  if(Math.abs(len)>4){ctx.beginPath();ctx.moveTo(px+len,ay);ctx.lineTo(px+len-s,ay-4);ctx.lineTo(px+len-s,ay+4);ctx.fill();}
+}
+/** Dibuja x(t) y la fuerza escalada en una ventana móvil de TW segundos, con rejilla y leyenda. */
+function drawTime(){
+  const {ctx,w,h}=cv.T;ctx.clearRect(0,0,w,h);
+  // Márgenes (l, r, tp, b), tamaño del área de trazado (pw, ph) y ventana temporal [t0, t0+TW];
+  // mx y my convierten tiempo y valor a píxeles (ym = semialtura del eje vertical)
+  const l=38,r=10,tp=26,b=22,pw=w-l-r,ph=h-tp-b,t0=Math.max(0,S.t-TW),ym=view.ym;
+  const mx=t=>l+(t-t0)/TW*pw,my=v=>tp+ph/2-v/ym*ph/2;
+  ctx.font=FONT;ctx.lineWidth=1;ctx.strokeStyle=C('--line');ctx.fillStyle=C('--mute');ctx.textAlign='right';ctx.textBaseline='middle';
+  // Rejilla horizontal con valores y marcas de tiempo cada 5 s
+  for(const k of [-1,-.5,0,.5,1]){const y=my(k*ym);ctx.beginPath();ctx.moveTo(l,y);ctx.lineTo(w-r,y);ctx.stroke();ctx.fillText((k*ym).toFixed(1),l-6,y);}
+  ctx.textAlign='center';ctx.textBaseline='top';
+  for(let tk=Math.ceil(t0/5)*5;tk<=t0+TW;tk+=5){const x=mx(tk);ctx.beginPath();ctx.moveTo(x,tp);ctx.lineTo(x,tp+ph);ctx.stroke();ctx.fillText(tk+' s',x,tp+ph+5);}
+  // Recorta al área de trazado y dibuja las curvas (fuerza detrás, posición delante)
+  ctx.save();ctx.beginPath();ctx.rect(l,tp,pw,ph);ctx.clip();
+  const path=(ys,col,lw)=>{ctx.strokeStyle=C(col);ctx.lineWidth=lw;ctx.beginPath();let st=false;
+    for(let i=0;i<HT.length;i++){if(HT[i]<t0)continue;const X=mx(HT[i]),Y=my(ys[i]);st?ctx.lineTo(X,Y):(ctx.moveTo(X,Y),st=true);}ctx.stroke();};
+  if(showForce)path(HF,'--f',1.4);
+  // Envolvente punteada ±A(t) detrás de la posición
+  if(showEnv){ctx.setLineDash([5,4]);path(HE,'--acc',1.8);path(HE.map(e=>-e),'--acc',1.8);ctx.setLineDash([]);}
+  path(HX,'--x',2.2);ctx.restore();
+  ctx.textAlign='left';ctx.textBaseline='middle';
+  // Leyenda
+  let lx=l;[['--x','x(t)',0],['--f','excitación F cos ωt / ω₀²',2],['--acc','envolvente ±A(t)',1]].forEach(([c,t,d])=>{if((d===1&&!showEnv)||(d===2&&!showForce))return;ctx.strokeStyle=ctx.fillStyle=C(c);ctx.lineWidth=2.5;ctx.setLineDash(d===1?[5,4]:[]);ctx.beginPath();ctx.moveTo(lx,12);ctx.lineTo(lx+16,12);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=C('--mute');ctx.fillText(t,lx+22,12);lx+=22+ctx.measureText(t).width+16;});
+}
+/** Amplitud estacionaria A(ω) = F/√((ω₀²−ω²)²+(2γω)²). Usa γ ≥ 0,005 en la gráfica para evitar dividir entre cero en ω = ω₀. */
+function Amp(w){const g=Math.max(P.g,.005);return P.F/Math.sqrt((P.w0*P.w0-w*w)**2+(2*g*w)**2);}
+/** Dibuja la curva de resonancia A contra ω/ω₀ (de 0 a 3), con marcadores en ω/ω₀ = 1 y en la razón actual. */
+function drawRes(){
+  const {ctx,w,h}=cv.R;ctx.clearRect(0,0,w,h);
+  const l=38,r=10,tp=12,b=24,pw=w-l-r,ph=h-tp-b,W=3,N=600;let top=0;
+  // Escala vertical: máximo de A(ω) en la rejilla de N puntos, más el pico teórico en ω_r si existe
+  for(let i=0;i<=N;i++)top=Math.max(top,Amp(i/N*W*P.w0));
+  if(P.w0*P.w0>2*P.g*P.g)top=Math.max(top,Amp(Math.sqrt(P.w0*P.w0-2*P.g*P.g)));
+  top=top>1e-6?top*1.1:1;
+  const mx=v=>l+v/W*pw,my=a=>tp+ph-a/top*ph;
+  ctx.font=FONT;ctx.lineWidth=1;ctx.strokeStyle=C('--line');ctx.fillStyle=C('--mute');ctx.textAlign='center';ctx.textBaseline='top';
+  for(let k=0;k<=W;k++){ctx.beginPath();ctx.moveTo(mx(k),tp);ctx.lineTo(mx(k),tp+ph);ctx.stroke();ctx.fillText(k,mx(k),tp+ph+5);}
+  ctx.textAlign='right';ctx.textBaseline='middle';
+  for(const k of [0,1]){ctx.beginPath();ctx.moveTo(l,my(k*top));ctx.lineTo(w-r,my(k*top));ctx.stroke();ctx.fillText((k*top).toFixed(1),l-6,my(k*top));}
+  ctx.textAlign='right';ctx.textBaseline='bottom';ctx.fillText('ω/ω₀',w-r,h-2+0);
+  ctx.save();ctx.beginPath();ctx.rect(l,tp-2,pw,ph+4);ctx.clip();
+  // Línea punteada en ω₀
+  ctx.setLineDash([3,4]);ctx.strokeStyle=C('--mute');ctx.beginPath();ctx.moveTo(mx(1),tp);ctx.lineTo(mx(1),tp+ph);ctx.stroke();ctx.setLineDash([]);
+  // Curva A(ω)
+  ctx.strokeStyle=C('--acc');ctx.lineWidth=2.2;ctx.beginPath();
+  for(let i=0;i<=N;i++){const ww=i/N*W,X=mx(ww),Y=my(Amp(ww*P.w0));i?ctx.lineTo(X,Y):ctx.moveTo(X,Y);}ctx.stroke();
+  // Marcador de la ω actual: línea vertical y punto sobre la curva
+  ctx.strokeStyle=ctx.fillStyle=C('--f');ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(mx(P.w/P.w0),tp);ctx.lineTo(mx(P.w/P.w0),tp+ph);ctx.stroke();
+  ctx.beginPath();ctx.arc(mx(P.w/P.w0),my(Amp(P.w)),4.5,0,7);ctx.fill();ctx.restore();
+}
+/**
+ * Bucle de animación (requestAnimationFrame): avanza la simulación según el tiempo real
+ * transcurrido, ajusta suavemente las escalas de los ejes y redibuja los tres canvas.
+ */
+function frame(now){
+  const dt=Math.min(.05,(now-frame.last)/1000);frame.last=now;
+  // Tiempo simulado = tiempo real × velocidad; se divide en subpasos de ≤ 0,004 para mantener la precisión de RK4
+  if(running){const sd=dt*P.sp,n=Math.max(1,Math.ceil(sd/.004)),h=sd/n;for(let i=0;i<n;i++){rk4(h);sample();}}
+  // Autoescala suave: los ejes siguen a los máximos recientes de |x| y de la fuerza
+  let mxX=0,mxF=0;for(let i=0;i<HX.length;i++){mxX=Math.max(mxX,Math.abs(HX[i]));mxF=Math.max(mxF,Math.abs(HF[i]));}
+  view.ym+=(Math.max(1,mxX*1.15,mxF*1.15)-view.ym)*.08;view.ax+=(Math.max(2,mxX*1.1)-view.ax)*.08;
+  drawAnim();drawTime();drawRes();requestAnimationFrame(frame);
+}
+// Inicialización: prepara los canvas, lee los parámetros, fija el estado inicial y arranca el bucle
+setup('cA','A');setup('cT','T');setup('cR','R');
+refresh();reset();frame.last=performance.now();requestAnimationFrame(frame);
+
+// Control desde la presentación: al cambiar de diapositiva se aplican los parámetros.
+window.addEventListener('message', function(event) {
+  const data=event.data;
+  if(!data || data.kind!=='oscilaciones:setPreset') return;
+  if(data.params) { for (const [key,value] of Object.entries(data.params)) {if(el[key]) el[key].value=value;} refresh();reset(); }
+  if(data.running!==undefined){running=!!data.running; $('bp').textContent=running?'Pausar':'Reanudar';}
+});
+</script>
+</body>
+</html>

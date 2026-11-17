@@ -1,0 +1,840 @@
+/* HOJA DE ESTILOS — cambia aquí los colores, tamaños y espacios. */
+* {
+  box-sizing: border-box;
+}
+html,body {
+  margin: 0;
+  height: 100%;
+  font-family: Inter,Arial,sans-serif;
+  background: #0e1522;
+  color: #f0f4f7;
+}
+button {
+  font: inherit;
+  cursor: pointer;
+}
+#shell {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.toolbar {
+  height: 58px;
+  background: #101926;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 22px;
+  gap: 10px;
+  border-bottom: 1px solid #314257;
+  flex-shrink: 0;
+}
+.brand {
+  color: #e8b968;
+  font-weight: 800;
+  letter-spacing: .08em;
+  font-size: .78rem;
+}
+.right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.navbutton,.demo {
+  border: 1px solid #496079;
+  border-radius: 8px;
+  background: #1c3043;
+  color: white;
+  padding: 8px 12px;
+}
+.navbutton:hover,.mini button:hover {
+  background: #2b5365;
+}
+.primary {
+  background: #137d86;
+}
+.counter {
+  min-width: 75px;
+  text-align: center;
+  color: #b9cad9;
+  font-variant-numeric: tabular-nums;
+}
+.workspace {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+.slide {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  background: #f7f9fc;
+  color: #213047;
+  position: relative;
+  padding: clamp(18px,3.6vw,56px) clamp(22px,4.2vw,65px) 28px;
+}
+.slide:before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: linear-gradient(105deg,#23213f,#65254e 76%,#262244);
+  clip-path: ellipse(100% 90% at 50% 0%);
+}
+.slide:after {
+  content: "";
+  position: absolute;
+  right: 6%;
+  top: 0;
+  width: 23px;
+  height: 90px;
+  background: #b40a65;
+}
+.slide>header {
+  position: relative;
+  margin-top: 0;
+  min-height: 106px;
+  z-index: 1;
+}
+.section {
+  font-size: .73rem;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: #e7b968;
+  font-weight: 800;
+  margin: 0 0 9px;
+}
+.slide h1 {
+  font-size: clamp(1.5rem,2.7vw,2.6rem);
+  line-height: 1.16;
+  margin: 0 0 24px;
+  color: #fff;
+  font-weight: 800;
+  letter-spacing: -.04em;
+  max-width: 1000px;
+}
+.content {
+  position: relative;
+  z-index: 2;
+  font-size: clamp(1rem,1.2vw,1.22rem);
+  line-height: 1.53;
+  max-width: 1300px;
+}
+.content h3 {
+  font-size: 1.13em;
+  color: #0d7a82;
+  margin: 3px 0 12px;
+}
+.content p {
+  margin: 12px 0;
+}
+.content b {
+  color: #273d5a;
+}
+.twocol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(15px,3vw,45px);
+}
+.steps {
+  display: grid;
+  gap: 12px;
+}
+.steps>div {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.dot {
+  color: #ad1260;
+  min-width: 29px;
+  font-size: .83rem;
+  font-weight: 800;
+  padding-top: 3px;
+}
+.formula {
+  padding: 15px 16px;
+  border-radius: 9px;
+  border-left: 4px solid #0d878c;
+  background: #e7f0f5;
+  margin: 14px 0;
+  font-family: Georgia,serif;
+  font-size: clamp(1.2rem,1.5vw,1.7rem);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.hero-eq {
+  font: clamp(1.8rem,3.8vw,3.3rem) Georgia,serif;
+  color: #0b7d85;
+  margin: 40px 0;
+}
+.subtitle {
+  font-size: 1.7em;
+  color: #9b6a1f;
+}
+.muted {
+  color: #667789;
+}
+.footnote {
+  background: #f3eef5;
+  color: #6b6170;
+  border-radius: 8px;
+  padding: 12px 15px;
+  margin-top: 24px;
+  font-size: .86em;
+}
+.three,.five {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 17px;
+}
+.five {
+  grid-template-columns: repeat(5,1fr);
+}
+.mini {
+  border: 1px solid #d3dce4;
+  border-radius: 12px;
+  padding: 18px;
+  background: white;
+  box-shadow: 0 3px 12px #142c4211;
+}
+.mini h3 {
+  margin-top: 0;
+}
+.mini button,.content button {
+  background: #0d7e86;
+  border: 0;
+  color: white;
+  border-radius: 7px;
+  padding: 10px 14px;
+}
+.figure {
+  display: block;
+  width: 100%;
+  object-fit: contain;
+  max-height: 340px;
+  border-radius: 10px;
+  background: #fff;
+}
+.figure.large {
+  max-height: 430px;
+}
+.highlight {
+  padding: 18px;
+  background: #deeff0;
+  border-radius: 10px;
+  font-weight: 800;
+  color: #0d6d76;
+  font-size: 1.6rem;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: .95em;
+}
+td,th {
+  padding: 9px 12px;
+  text-align: left;
+  border-bottom: 1px solid #d4dee6;
+}
+th {
+  background: #e7f1f4;
+}
+.simdock {
+  width: 0;
+  min-width: 0;
+  transition: width .18s ease;
+  background: #e9eff3;
+  overflow: hidden;
+  border-left: 0;
+  display: flex;
+  flex-direction: column;
+}
+.simdock.open {
+  width: 53%;
+  border-left: 4px solid #0b7c85;
+}
+.simhead {
+  height: 46px;
+  flex-shrink: 0;
+  background: #132437;
+  color: #f2f6f8;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 12px;
+  font-size: .85rem;
+}
+.simhead button {
+  background: #30465d;
+  color: white;
+  border: 0;
+  padding: 5px 9px;
+  border-radius: 5px;
+}
+#simFrame {
+  border: 0;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  background: #f1f5f7;
+}
+.footer {
+  height: 5px;
+  background: #26374e;
+  flex-shrink: 0;
+}
+.progress {
+  height: 5px;
+  background: #0d929c;
+  width: 0;
+  transition: width .2s;
+}
+kbd {
+  background: #243953;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: .78em;
+}
+@media (max-width:1050px) {
+  .five {
+    grid-template-columns: repeat(3,1fr);
+  }
+  .slide {
+    padding: 26px 25px;
+  }
+  .simdock.open {
+    width: 57%;
+  }
+  .twocol {
+    grid-template-columns: 1fr;
+  }
+  .content {
+    font-size: 1rem;
+  }
+}
+@media (max-width:680px) {
+  .brand {
+    display: none;
+  }
+  .toolbar {
+    padding: 0 7px;
+  }
+  .right {
+    gap: 4px;
+  }
+  .navbutton {
+    padding: 6px;
+  }
+  .slide:before {
+    height: 105px;
+  }
+  .slide h1 {
+    font-size: 1.4rem;
+  }
+  .slide>header {
+    min-height: 110px;
+  }
+  .simdock.open {
+    position: absolute;
+    z-index: 4;
+    inset: 58px 0 5px;
+    width: 100%;
+    border-left: 0;
+  }
+  .three,.five {
+    grid-template-columns: 1fr;
+  }
+  .content {
+    font-size: 1rem;
+  }
+}
+@media print {
+  .toolbar,.simdock,.footer {
+    display: none;
+  }
+  .workspace {
+    height: auto;
+    overflow: visible;
+  }
+  .slide {
+    overflow: visible;
+  }
+}
+/* Versión fiel a la distribución matemática de la presentación fuente */
+.slide h1 {
+  color: #fff;
+  text-shadow: 0 1px 2px #16132670;
+  letter-spacing: -.02em;
+}
+.slide:before {
+  height: 155px;
+  clip-path: ellipse(90% 91% at 47% 0%);
+}
+.slide>header {
+  min-height: 128px;
+}
+.slide {
+  background: #fff;
+  padding-top: clamp(18px,3vw,38px);
+}
+.mathcols {
+  gap: 3.2vw;
+  align-items: start;
+}
+.mathline {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0 0 13px;
+  line-height: 1.55;
+  font-size: clamp(.93rem,1.18vw,1.17rem);
+}
+.mathline .triangle {
+  color: #bb0b70;
+  flex: none;
+  font-size: 1.18em;
+  line-height: 1.25;
+}
+.latex-math {
+  display: inline-block;
+  vertical-align: middle;
+  max-width: 100%;
+  color: inherit;
+}
+.latex-math mjx-container {
+  max-width: 100%;
+  margin: 0 !important;
+}
+.latex-math svg {
+  height: auto;
+  max-height: 100%;
+  max-width: 100%;
+  overflow: visible;
+  vertical-align: middle;
+}
+.mathline .latex-math {
+  margin-left: 2px;
+}
+.formula {
+  background: #fff;
+  border: 1px solid #cbd8df;
+  border-left: 3px solid #128b91;
+  font: inherit;
+  line-height: 1.6;
+  padding: 10px 14px;
+  overflow-x: auto;
+  overflow-wrap: normal;
+}
+.formula .latex-math {
+  font-size: 1.30em;
+  white-space: nowrap;
+}
+.sourcecards .mini {
+  padding: 12px 17px;
+  margin-bottom: 14px;
+  box-shadow: none;
+  border-radius: 7px;
+}
+.sourcecards .mini h3 {
+  font-size: 1rem;
+  margin: 0;
+  color: #527181;
+}
+.sourcecards .formula {
+  margin: 0;
+  padding: 7px 2px;
+  border: 0;
+  box-shadow: none;
+}
+.sourcecards .formula .latex-math {
+  font-size: 1.7em;
+}
+.regime-cards .mini {
+  box-shadow: none;
+  border-radius: 7px;
+  padding: 13px 15px;
+  min-width: 0;
+}
+.regime-cards .mini .formula {
+  padding: 8px 6px;
+  max-width: 100%;
+  margin: 9px 0;
+  font-size: .84em;
+}
+.regime-cards .mini .formula .latex-math {
+  font-size: 1em;
+}
+.regime-cards h3 {
+  font-size: clamp(.95rem,1.25vw,1.2rem);
+  line-height: 1.5;
+}
+.regime-cards h3 .latex-math {
+  font-size: .93em;
+}
+.route>div {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  align-items: center;
+  border-bottom: 1px solid #d6d9db;
+  padding: 19px 10px;
+  font-size: 1.2em;
+}
+.route b {
+  color: #0b8185;
+}
+.route .latex-math {
+  font-size: 1.3em;
+}
+.amplitude-strip {
+  padding: 15px;
+  margin-top: 15px;
+  background: #f1f7f7;
+  color: #0c7c84;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 1.3em;
+}
+.smallnote {
+  font-size: .8em;
+}
+.presenters {
+  max-width: 960px;
+  margin-top: 32px;
+}
+.presenter-label {
+  color: #657486;
+  font-size: .75em;
+  font-weight: 800;
+  letter-spacing: .15em;
+}
+.presenter-grid {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 12px 20px;
+}
+.presenter {
+  background: #f6f8fb;
+  border: 1px solid #d5dce5;
+  border-radius: 9px;
+  padding: 9px 15px;
+}
+.presenter span {
+  display: block;
+  font-size: .7em;
+  letter-spacing: .08em;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #0d868d;
+}
+.presenter [contenteditable] {
+  outline: none;
+  border-bottom: 1px dashed #aebcc8;
+  padding: 4px 0;
+  min-width: 0;
+}
+.presenter [contenteditable]:focus {
+  border-color: #0d858b;
+  background: #eaf5f6;
+}
+.presenter-hint {
+  font-size: .76em;
+  color: #73818e;
+  margin: 6px 0;
+}
+.hero-eq .latex-math {
+  font-size: .94em;
+}
+@media (max-width:1120px) {
+  .mathline {
+    font-size: clamp(.84rem,1.15vw,1.05rem);
+  }
+  .regime-cards .mini {
+    padding: 10px;
+  }
+  .content {
+    font-size: 1rem;
+  }
+}
+@media (max-width:720px) {
+  .presenter-grid {
+    grid-template-columns: 1fr;
+  }
+  .route>div {
+    display: block;
+  }
+  .route .latex-math {
+    display: block;
+    margin-top: 7px;
+  }
+  .mathline {
+    font-size: 1rem;
+  }
+  .slide>header {
+    min-height: 120px;
+  }
+  .sourcecards .formula .latex-math {
+    font-size: 1.25em;
+  }
+}
+/* Índice lateral navegable y numeración de la diapositiva */
+.quick-index {
+  width: 51px;
+  flex: 0 0 51px;
+  background: #142238;
+  border-left: 1px solid #2d4662;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 9px 3px;
+  scrollbar-width: thin;
+  z-index: 6;
+}
+.index-caption {
+  font-size: 9px;
+  color: #e9bd75;
+  font-weight: 800;
+  letter-spacing: .04em;
+  padding: 3px 0 8px;
+  text-transform: uppercase;
+}
+.index-item {
+  border: 1px solid transparent;
+  background: #1b3149;
+  color: #b8cadb;
+  border-radius: 6px;
+  min-height: 30px;
+  width: 37px;
+  font-size: 12px;
+  font-weight: 750;
+  padding: 3px;
+  flex-shrink: 0;
+}
+.index-item:hover {
+  background: #355169;
+  color: #fff;
+}
+.index-item.active {
+  background: #0b828c;
+  border-color: #5bcbca;
+  color: #fff;
+}
+.slide-numeral {
+  position: absolute;
+  z-index: 5;
+  top: 20px;
+  right: 80px;
+  font-weight: 850;
+  font-size: 14px;
+  color: #fff;
+  background: #241c39d9;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .07em;
+  box-shadow: 0 1px 5px #0002;
+}
+.amplitude-takeaway {
+  font-weight: 600;
+}
+.amplitude-takeaway .latex-math {
+  color: #0e7d87;
+}
+.bar-drawing {
+  width: 100%;
+  max-height: 275px;
+  border: 1px solid #d5e2e9;
+  border-radius: 12px;
+  background: #fff;
+}
+/* El simulador ocupa lo disponible, dejando a la derecha el índice accesible */
+.simdock.open {
+  width: 52%;
+}
+@media (max-width:1050px) {
+  .simdock.open {
+    width: 56%;
+  }
+}
+@media (max-width:680px) {
+  .quick-index {
+    width: 42px;
+    flex-basis: 42px;
+  }
+  .index-item {
+    width: 32px;
+    min-height: 28px;
+    font-size: 11px;
+  }
+  .slide-numeral {
+    right: 43px;
+    top: 10px;
+    font-size: 11px;
+    padding: 4px 6px;
+  }
+  .simdock.open {
+    width: auto;
+    right: 42px;
+    left: 0;
+    top: 58px;
+    bottom: 5px;
+    position: absolute;
+  }
+}
+.texgraphic {
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  max-height: 3.8rem;
+  vertical-align: middle;
+  display: inline-block;
+}
+.math-block {
+  background: #f8fbfc;
+  border: 1px solid #cbd8df;
+  border-radius: 7px;
+  padding: 10px 13px;
+  margin: 10px 0;
+  overflow-x: auto;
+}
+.math-block .texgraphic {
+  max-height: 5.1rem;
+  max-width: none;
+}
+.integration-diagram {
+  width: 100%;
+  max-height: 355px;
+  background: #fff;
+  border: 1px solid #dae4e9;
+  border-radius: 10px;
+}
+.integration-steps>div {
+  align-items: center;
+  gap: 15px;
+}
+.integration-steps .texgraphic {
+  max-height: 2rem;
+}
+@media (max-width:1000px) {
+  .math-block .texgraphic {
+    max-height: 3.5rem;
+  }
+  .integration-steps {
+    font-size: .94rem;
+  }
+}
+@media (max-width:680px) {
+  .math-block .texgraphic {
+    max-height: 2.8rem;
+  }
+}
+/* Tamaño de ecuaciones del ejercicio resuelto, equiparado al de las etapas de la exposición */
+#res-vel-1 .texgraphic, #res-vel-2 .texgraphic, #res-vel-3 .texgraphic {
+  max-height: 2.1rem;
+  max-width: 100%;
+  width: auto;
+  object-fit: contain;
+}
+#res-vel-1 .math-block .texgraphic, #res-vel-2 .math-block .texgraphic, #res-vel-3 .math-block .texgraphic {
+  max-height: 2.45rem;
+  max-width: 100%;
+}
+#res-vel-1 .math-block, #res-vel-2 .math-block, #res-vel-3 .math-block {
+  padding: 8px 11px;
+  margin: 8px 0;
+}
+@media (max-width:680px) {
+  #res-vel-1 .math-block .texgraphic, #res-vel-2 .math-block .texgraphic, #res-vel-3 .math-block .texgraphic {
+    max-height: 2rem;
+  }
+}
+/* Reparación integral de expresiones matemáticas: nunca recortar fracciones ni radicales */
+.math-block {
+  padding: 11px 14px;
+  min-height: 52px;
+  overflow-x: auto;
+  overflow-y: auto;
+  max-width: 100%;
+}
+.math-block .latex-math {
+  font-size: 1.16em;
+  line-height: 1.6;
+  max-width: none;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.math-block .latex-math mjx-container {
+  margin: 0 !important;
+  max-width: none !important;
+  overflow: visible !important;
+}
+.math-block .latex-math svg {
+  height: auto !important;
+  max-height: none !important;
+  max-width: none !important;
+  overflow: visible !important;
+  vertical-align: middle;
+}
+.content .tex-offline {
+  font-family: inherit;
+  vertical-align: -.12em;
+  line-height: 1.5;
+}
+.content .tex-offline:not(.math-block .tex-offline) {
+  font-size: 1em;
+}
+.content .tex-offline mjx-container {
+  display: inline-block !important;
+  margin: 0 !important;
+  vertical-align: middle;
+  overflow: visible !important;
+}
+.content .tex-offline svg {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+.mathcols > div,.twocol > div,.mini {
+  min-width: 0;
+}
+#res-vel-1 .math-block, #res-vel-2 .math-block, #res-vel-3 .math-block {
+  padding: 12px 15px;
+  margin: 10px 0;
+}
+#res-vel-1 .math-block .latex-math, #res-vel-2 .math-block .latex-math, #res-vel-3 .math-block .latex-math {
+  font-size: 1.11em;
+}
+#res-vel-1 .content, #res-vel-2 .content, #res-vel-3 .content {
+  line-height: 1.57;
+}
+@media (max-width:980px) {
+  .mathcols {
+    grid-template-columns: 1fr;
+  }
+  .math-block .latex-math {
+    font-size: 1em;
+  }
+  .math-block {
+    overflow-x: auto;
+  }
+}
+/* All slides stay on a single scroll surface and all formulas remain visible at projected sizes. */
+.slide {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Para mantener la presentación legible si la fórmula ocupa mucho ancho. */
+.latex-math { max-width: none; }
+.latex-math mjx-container { overflow: visible; }
+.math-block { overflow-x: auto; overflow-y: visible; }
+/* En la diapositiva de portada los nombres siguen siendo editables al hacer clic. */
